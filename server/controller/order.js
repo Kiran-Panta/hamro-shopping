@@ -13,11 +13,28 @@ export const newOrderCod = TryCatch(async (req, res) => {
     select: "title price",
   });
 
-  if (!cart.length) return res.status(400).json({ message: "Cart is empty" });
+  // ✅ REMOVE NULL PRODUCTS
+  const validCart = cart.filter((i) => i.product);
+
+  if (!validCart.length)
+    return res.status(400).json({ message: "Cart is empty" });
 
   let subTotal = 0;
 
-  const items = cart.map((i) => {
+  // const items = cart.map((i) => {
+  //   const itemSubtotal = i.product.price * i.quauntity;
+
+  //   subTotal += itemSubtotal;
+
+  //   return {
+  //     product: i.product._id,
+  //     name: i.product.title,
+  //     price: i.product.price,
+  //     quantity: i.quauntity,
+  //   };
+  // });
+
+  const items = validCart.map((i) => {
     const itemSubtotal = i.product.price * i.quauntity;
 
     subTotal += itemSubtotal;
@@ -141,10 +158,84 @@ dotenv.config();
 
 const stripe = new Stripe(process.env.Stripe_Secret_Key);
 
+// export const newOrderOnline = async (req, res) => {
+//   try {
+//     const { method, phone, address } = req.body;
+
+//     // **** // const cart = await Cart.find({ user: req.user._id }).populate("product");
+
+//     // if (!cart.length) {
+//     //   return res.status(400).json({
+//     //     message: "Cart is empty",
+//     //   });
+//     // **** // }
+
+//     const validCart = cart.filter((i) => i.product);
+
+//     if (!validCart.length) {
+//       return res.status(400).json({ message: "Cart is empty" });
+//     }
+
+//     const subTotal = cart.reduce(
+//       (total, item) => total + item.product.price * item.quauntity,
+//       0,
+//     );
+
+//     // ******* //const lineItems = cart.map((item) => ({
+//     //   price_data: {
+//     //     currency: "inr",
+//     //     product_data: {
+//     //       name: item.product.title,
+//     //       images: [item.product.images[0].url],
+//     //     },
+//     //     unit_amount: Math.round(item.product.price * 100),
+//     //   },
+//     //   quantity: item.quauntity,
+//     // ******* // }));
+
+//     const lineItems = validCart.map((item) => ({
+//       price_data: {
+//         currency: "inr",
+//         product_data: {
+//           name: item.product.title,
+//           images: [item.product.images?.[0]?.url || ""],
+//         },
+//         unit_amount: Math.round(item.product.price * 100),
+//       },
+//       quantity: item.quauntity,
+//     }));
+
+//     const sesssion = await stripe.checkout.sessions.create({
+//       payment_method_types: ["card"],
+//       line_items: lineItems,
+//       mode: "payment",
+//       success_url: `${process.env.Frontend_Url}/ordersuccess?session_id={CHECKOUT_SESSION_ID}`,
+//       cancel_url: `${process.env.Frontend_Url}/cart`,
+//       metadata: {
+//         userId: req.user._id.toString(),
+//         method,
+//         phone,
+//         address,
+//         subTotal,
+//       },
+//     });
+
+//     res.json({
+//       url: sesssion.url,
+//     });
+//   } catch (error) {
+//     console.log("Error creating Stripe session:", error.message);
+//     res.status(500).json({
+//       message: "Failed to create payment session",
+//     });
+//   }
+// };
+
 export const newOrderOnline = async (req, res) => {
   try {
     const { method, phone, address } = req.body;
 
+    // ✅ RESTORE THIS (IMPORTANT)
     const cart = await Cart.find({ user: req.user._id }).populate("product");
 
     if (!cart.length) {
@@ -153,17 +244,23 @@ export const newOrderOnline = async (req, res) => {
       });
     }
 
-    const subTotal = cart.reduce(
+    const validCart = cart.filter((i) => i.product);
+
+    if (!validCart.length) {
+      return res.status(400).json({ message: "Cart is empty" });
+    }
+
+    const subTotal = validCart.reduce(
       (total, item) => total + item.product.price * item.quauntity,
       0
     );
 
-    const lineItems = cart.map((item) => ({
+    const lineItems = validCart.map((item) => ({
       price_data: {
         currency: "inr",
         product_data: {
           name: item.product.title,
-          images: [item.product.images[0].url],
+          images: [item.product.images?.[0]?.url || ""],
         },
         unit_amount: Math.round(item.product.price * 100),
       },
@@ -188,6 +285,7 @@ export const newOrderOnline = async (req, res) => {
     res.json({
       url: sesssion.url,
     });
+
   } catch (error) {
     console.log("Error creating Stripe session:", error.message);
     res.status(500).json({
@@ -272,3 +370,66 @@ export const verifyPayment = async (req, res) => {
     });
   }
 };
+
+// export const newOrderEsewa = TryCatch(async (req, res) => {
+
+//   const { method, phone, address } = req.body;
+
+//   const cart = await Cart.find({ user: req.user._id }).populate({
+//     path: "product",
+//     select: "title price",
+//   });
+
+//   if (!cart.length) {
+//     return res.status(400).json({ message: "Cart is empty" });
+//   }
+
+//   // Calculate total
+//   let subTotal = 0;
+
+//   const items = cart.map((i) => {
+//     const itemTotal = i.product.price * i.quauntity;
+//     subTotal += itemTotal;
+
+//     return {
+//       product: i.product._id,
+//       name: i.product.title,
+//       price: i.product.price,
+//       quantity: i.quauntity,
+//     };
+//   });
+
+//   // 1. Create order first (PENDING)
+//   const order = await Order.create({
+//     items,
+//     method,
+//     user: req.user._id,
+//     phone,
+//     address,
+//     subTotal,
+//     status: "pending",
+//   });
+
+//   // (Optional) clear cart now or after payment success
+//   await Cart.deleteMany({ user: req.user._id });
+
+//   // 2. eSewa payment payload
+//   const paymentData = {
+//     amt: subTotal,
+//     psc: 0,
+//     pdc: 0,
+//     txAmt: 0,
+//     tAmt: subTotal,
+//     pid: order._id.toString(), // IMPORTANT: order id
+//     scd: process.env.ESEWA_MERCHANT_CODE,
+//     su: `${process.env.FRONTEND_URL}/payment-success`,
+//     fu: `${process.env.FRONTEND_URL}/payment-failed`,
+//   };
+
+//   // 3. Send payment data to frontend
+//   res.json({
+//     message: "Redirect to eSewa",
+//     paymentData,
+//     orderId: order._id,
+//   });
+// });

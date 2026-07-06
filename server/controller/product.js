@@ -103,36 +103,160 @@ export const getSingleProduct = TryCatch(async (req, res) => {
   res.json({ product, relatedProduct });
 });
 
+// export const updateProduct = TryCatch(async (req, res) => {
+//   if (req.user.role !== "admin")
+//     return res.status(403).json({
+//       message: "You are not admin",
+//     });
+
+//   const { title, about, category, price, stock } = req.body;
+
+//   const updateFields = {};
+
+//   if (title) updateFields.title = title;
+//   if (about) updateFields.about = about;
+//   if (stock) updateFields.stock = stock;
+//   if (price) updateFields.price = price;
+//   if (category) updateFields.category = category;
+
+//   const updatedProduct = await Product.findByIdAndUpdate(
+//     req.params.id,
+//     updateFields,
+//     { new: true, runValidators: true }
+//   );
+
+//   if (!updatedProduct)
+//     return res.status(404).json({
+//       message: "Product not found",
+//     });
+
+//   res.json({
+//     message: "Product Updated",
+//     updatedProduct,
+//   });
+// });
+
+// export const updateProduct = TryCatch(async (req, res) => {
+//   if (req.user.role !== "admin")
+//     return res.status(403).json({ message: "You are not admin" });
+
+//   const product = await Product.findById(req.params.id);
+
+//   if (!product)
+//     return res.status(404).json({ message: "Product not found" });
+
+//   const { title, about, category, price, stock } = req.body;
+
+//   if (title) product.title = title;
+//   if (about) product.about = about;
+//   if (category) product.category = category;
+//   if (price) product.price = price;
+//   if (stock) product.stock = stock;
+
+//   await product.save();
+
+//   res.json({
+//     message: "Product Updated",
+//     product,
+//   });
+// });
+
+// export const updateProduct = TryCatch(async (req, res) => {
+//   const { id } = req.params;
+
+//   const product = await Product.findById(id);
+
+//   if (!product) {
+//     return res.status(404).json({ message: "Product not found" });
+//   }
+
+//   const { title, about, price, stock, category } = req.body;
+
+//   product.title = title || product.title;
+//   product.about = about || product.about;
+//   product.price = price || product.price;
+//   product.stock = stock || product.stock;
+//   product.category = category || product.category;
+
+//   // 🚀 FIX FOR MEMORY STORAGE
+//   if (req.files && req.files.length > 0) {
+//     const uploadedImages = [];
+
+//     for (let file of req.files) {
+//       const result = await cloudinary.v2.uploader.upload_stream(
+//         { resource_type: "image" },
+//         (error, result) => {
+//           if (result) {
+//             uploadedImages.push({
+//               url: result.secure_url,
+//               id: result.public_id,
+//             });
+//           }
+//         }
+//       );
+
+//       result.end(file.buffer);
+//     }
+
+//     product.images = uploadedImages;
+//   }
+
+//   await product.save();
+
+//   res.json({
+//     message: "Product updated successfully",
+//     product,
+//   });
+// });
+
 export const updateProduct = TryCatch(async (req, res) => {
-  if (req.user.role !== "admin")
+  if (req.user.role !== "admin") {
     return res.status(403).json({
       message: "You are not admin",
     });
+  }
 
-  const { title, about, category, price, stock } = req.body;
+  const { id } = req.params;
 
-  const updateFields = {};
+  const product = await Product.findById(id);
 
-  if (title) updateFields.title = title;
-  if (about) updateFields.about = about;
-  if (stock) updateFields.stock = stock;
-  if (price) updateFields.price = price;
-  if (category) updateFields.category = category;
+  if (!product) {
+    return res.status(404).json({ message: "Product not found" });
+  }
 
-  const updatedProduct = await Product.findByIdAndUpdate(
-    req.params.id,
-    updateFields,
-    { new: true, runValidators: true }
-  );
+  const { title, about, price, stock, category } = req.body;
 
-  if (!updatedProduct)
-    return res.status(404).json({
-      message: "Product not found",
-    });
+  product.title = title || product.title;
+  product.about = about || product.about;
+  product.price = price || product.price;
+  product.stock = stock || product.stock;
+  product.category = category || product.category;
+
+  // ✅ FIXED IMAGE UPLOAD (USING BUFFER GENERATOR LIKE CREATE PRODUCT)
+  if (req.files && req.files.length > 0) {
+    const uploadedImages = [];
+
+    for (let file of req.files) {
+      const fileBuffer = bufferGenerator(file);
+
+      const result = await cloudinary.v2.uploader.upload(
+        fileBuffer.content
+      );
+
+      uploadedImages.push({
+        id: result.public_id,
+        url: result.secure_url,
+      });
+    }
+
+    product.images = uploadedImages;
+  }
+
+  await product.save();
 
   res.json({
-    message: "Product Updated",
-    updatedProduct,
+    message: "Product updated successfully",
+    product,
   });
 });
 
@@ -185,5 +309,34 @@ export const updateProductImage = TryCatch(async (req, res) => {
   res.status(200).json({
     message: "Image updated",
     product,
+  });
+});
+
+export const deleteProduct = TryCatch(async (req, res) => {
+  if (req.user.role !== "admin") {
+    return res.status(403).json({
+      message: "You are not admin",
+    });
+  }
+
+  const product = await Product.findById(req.params.id);
+
+  if (!product) {
+    return res.status(404).json({
+      message: "Product not found",
+    });
+  }
+
+  // optional: delete cloudinary images
+  for (const img of product.images) {
+    if (img.id) {
+      await cloudinary.v2.uploader.destroy(img.id);
+    }
+  }
+
+  await product.deleteOne();
+
+  res.json({
+    message: "Product deleted successfully",
   });
 });

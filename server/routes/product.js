@@ -6,6 +6,7 @@ import {
   getSingleProduct,
   updateProduct,
   updateProductImage,
+  deleteProduct, 
 } from "../controller/product.js";
 import uploadFiles from "../middlewares/multer.js";
 
@@ -14,7 +15,9 @@ const router = express.Router();
 router.post("/product/new", isAuth, uploadFiles, createProduct);
 router.get("/product/all", getAllProducts);
 router.get("/product/:id", getSingleProduct);
-router.put("/product/:id", isAuth, updateProduct);
+// router.put("/product/:id", isAuth, updateProduct);
+router.put("/product/:id", isAuth, uploadFiles, updateProduct);
 router.post("/product/:id", isAuth, uploadFiles, updateProductImage);
+router.delete("/product/:id", isAuth, deleteProduct);
 
 export default router;
