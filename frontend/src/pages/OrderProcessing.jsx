@@ -64,7 +64,7 @@ const OrderProcessing = () => {
   }, [sessionId, paymentVerified, navigate]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-blue-100 to-blue-500">
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-r from-blue-100 to-blue-500">
       {loading ? (
         <>
           <div className="bg-white p-8 rounded-lg shadow-lg text-clip max-w-lg">
