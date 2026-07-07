@@ -14,7 +14,7 @@ const About = () => {
 
           <p className="mt-4 text-gray-500 dark:text-gray-400 max-w-2xl mx-auto text-sm md:text-base">
             We are building a modern shopping experience where quality meets convenience.
-            Our mission is to bring the best products directly to your fingertips.
+            Our mission is to bring the best products directly to your fingertips. Hello
           </p>
         </div>
 
