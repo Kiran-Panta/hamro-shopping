@@ -57,7 +57,7 @@ const About = () => {
         <div className="mt-16 text-center">
 
           <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
-            Built with ❤️ using modern web technologies
+            Shopping from <span>Hamro Pasal</span>
           </h3>
 
           <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
